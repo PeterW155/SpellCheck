@@ -1,0 +1,10 @@
+range
+fire
+ice
+water
+earth
+shock
+dark
+light
+damage
+speed

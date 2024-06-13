@@ -1,0 +1,5 @@
+future
+fire
+radius
+rewind
+repeat

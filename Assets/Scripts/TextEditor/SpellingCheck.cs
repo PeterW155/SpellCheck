@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using System.Linq;
+using System.IO;
+using UnityEngine.U2D.IK;
+using Unity.Collections.LowLevel.Unsafe;
 
 public class SpellingCheck : MonoBehaviour
 {
@@ -10,23 +13,71 @@ public class SpellingCheck : MonoBehaviour
     string[] lines;
     public TMP_Text playerInput;
     public TMP_InputField inputField;
-    public string[] holdWords;
+    public DisplayLibraries displayLibraries;
+    public List<string> library = new List<string>();
+    public List<string> libraries = new List<string>();
 
-    void Start()
+
+    void Awake()
     {
-        holdWords = new string[] { "hello", "boo", "test", "trash" };
+        libraries = FindLibraries();
+
         //playerInput.text = "<color=red>hello</color>";
     }
 
-    // Update is called once per frame
-    void Update()
+    public List<string> FindLibraries()
     {
+        /*List<string> librariesHold = new List<string>();
+
+        string[] files = Directory.GetFiles("Assets/SpellLibraries", ".");
+        //Debug.Log(files.Length);
+        foreach (string file in files)
+        {
+            if (file.EndsWith(".txt"))
+            {
+                int index = file.IndexOf("\\");
+
+                string holdfile = file.Substring(index + 1, file.Length - 1 - index);
+                librariesHold.Add(holdfile);
+            }
+            
+        }*/
+        return Directory.GetFiles("Assets/SpellLibraries", "*.txt", SearchOption.TopDirectoryOnly).Select(file => file.Substring(file.LastIndexOf("\\") + 1)).ToList();
+
+
+        //return librariesHold;
+    }
+
+    public List<string> GetLibraries()
+    {
+        return libraries;
+    }
+
+    public void SetLibrary(string lib)
+    {
+        //LoadLibrary("Assets/SpellLibraries/" + lib);
+    }
+
+    public void LoadLibrary()
+    {
+        string lib = displayLibraries.GetLibrary();
+        lib = "Assets/SpellLibraries/" + lib;
+        FileInfo source = new FileInfo(lib);
+        StreamReader reader = source.OpenText();
+        string line = reader.ReadLine();
+        library.Clear();
+
+        while (line != null)
+        {
+            this.library.Add(line);
+            line = reader.ReadLine();
+        }
         
     }
 
+
     public void ReadLines()
     {
-        Debug.Log(holdWords[0]);
         lines = playerInput.text.Split("\n");
 
 
@@ -51,7 +102,7 @@ public class SpellingCheck : MonoBehaviour
         string[] Tempword = text.Split(" ");
         foreach (string word in Tempword)
             {
-            if (!holdWords.Contains(word.ToLower()) && word.Length > 0)
+            if (!library.Contains(word.ToLower()) && word.Length > 0)
             {
                 Debug.Log(word);
                 return false;
@@ -64,32 +115,67 @@ public class SpellingCheck : MonoBehaviour
 
     public string CheckLine(string line)
     {
-        string[] Tempword = line.Split(" ");
-        string hold = "";
+        /*if (line.Contains("<color=red></color>"))
+            line = line.Replace("<color=red></color>", "");*/
+        line = line.Trim();
+        line = line.Trim('\n');
 
-        foreach (string word in Tempword)
+        string[] words = line.Split(" ");
+
+        string outputLine = "";
+
+        foreach (string word in words)
         {
-            if (holdWords.Contains(word.ToLower()))
+            if(word.Equals(" ") || word.Equals("") || word == null || word.Length < 1)
+                continue;
+
+            if (word.Contains("<color=red>"))
+            {
+                //Debug.Log(word + " is now REMOVED");
+                string rawWord = "REMOVED";
+                rawWord = word.Replace("</color>", "");
+                rawWord = rawWord.Replace("<color=red>", "");
+                if (library.Contains(rawWord.ToLower()))
+                {
+                    outputLine += rawWord + " ";
+                }
+                else
+                {
+                    outputLine += word + " ";
+                }
+            }
+            else if (word.Length > 0)
+            { 
+                if (library.Contains(word.ToLower()))
+                {
+                    outputLine += word + " ";
+                }
+                else
+                {
+                    outputLine += "<color=red>" + word + "</color> ";
+                }
+            }
+            /*if (library.Contains(word.ToLower()))
             {
                 hold += word + " ";
             }
             else
             {
-                hold += "<color=red>"+word+"</color> ";
-            }
+                hold += "<color=red>" + word + "</color> ";
+            }*/
         }
-
-        return hold;
+        outputLine = outputLine.Substring(0, outputLine.Length);
+        return outputLine;
     }
 
     public void RunLines()
     {
         string[] textLines = playerInput.text.Split('\n');
         Debug.Log("Run lines started");
-        Debug.Log(textLines[0]);
+        //Debug.Log(textLines[0]);
         inputField.text = "";
 
-        foreach (string words in textLines)
+        foreach (string line in textLines)
         {
             /*if (SpellCheck(words))
             {
@@ -99,11 +185,9 @@ public class SpellingCheck : MonoBehaviour
             {
                 inputField.text += "<color=red>"+words+"</color>\n";
             }*/
-            inputField.text += CheckLine(words) + "\n";
+            inputField.text += CheckLine(line) + "\n";
         }
 
-
-        //inputField.text += "<color=blue>bitch</color>";
         /*List<string> finalLines = new List<string>();
 
         foreach (string words in textLines)
